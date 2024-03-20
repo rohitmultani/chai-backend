@@ -21,7 +21,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     //return res
 
     const {fullName, email, username,password}=req.body
-    console.log("email",email);
+    // console.log("email",email);
 
     // if(fullName===""){
     //     throw new ApiError(400,"fullName is required")
@@ -35,7 +35,7 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(400,"All fields are required");
     }
 //3
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or:[{ username },{email}]
     })
 
@@ -44,11 +44,16 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 //upload image
     const  avatarLocalPath = req.files?.avatar[0]?.path;
-   const coverImageLocalPath =  req.files?.coverImage[0]?.path;
+//    const coverImageLocalPath =  req.files?.coverImage[0]?.path; // it will throw undefined error
+
+let coverImageLocalPath;
+if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage>0){
+    coverImageLocalPath = req.files.coverImage[0].path
+}
 //check avatar
 
 if(!avatarLocalPath){
-    throw new ApiError(400,"Avatat file is requried");
+    throw new ApiError(400,"Avatar file is requried");
 }
 //upload on cloudinary
 
@@ -56,7 +61,7 @@ if(!avatarLocalPath){
   const coverImage =  await uploadOnCloudinary(coverImageLocalPath);
 
   //checking avatar again
-   if(!avatar)  throw new ApiError(400,"Avatat file is requried");
+   if(!avatar)  throw new ApiError(400,"Avatar file is requried");
 
    // creating user entry
 
@@ -70,7 +75,7 @@ if(!avatarLocalPath){
    })
 
    //check for user entry
-   const createdUser = await User.findById(User._id).select(
+   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
    )
 
@@ -78,7 +83,8 @@ if(!avatarLocalPath){
    throw new ApiError(500,"Something went wrong while regestring the user");
 
    //sending response
-
+console.log(req.body)
+console.log(req.files)
    return res.status(201).json(
     new ApiResponse(200,createdUser, "User registerd Successfully")
    )
